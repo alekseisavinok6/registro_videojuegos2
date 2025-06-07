@@ -104,61 +104,58 @@ $dir = "imagenes/";
         let nuevaVentana2 = document.getElementById('nu_ventana_1')
         let editarVentana2 = document.getElementById('ed_ventana_1')
         let eliminarVentana2 = document.getElementById('el_ventana_1')
-
+    
         nuevaVentana2.addEventListener('shown.bs.modal', event => {
             nuevaVentana2.querySelector('.modal-body #nombre').focus()
         })
-
+    
         nuevaVentana2.addEventListener('hide.bs.modal', event => {
             nuevaVentana2.querySelector('.modal-body #nombre').value = ""
             nuevaVentana2.querySelector('.modal-body #descripcion').value = ""
             nuevaVentana2.querySelector('.modal-body #genero').value = ""
             nuevaVentana2.querySelector('.modal-body #imagen').value = ""
         })
-
+    
         editarVentana2.addEventListener('hide.bs.modal', event => {
             editarVentana2.querySelector('.modal-body #nombre').value = ""
             editarVentana2.querySelector('.modal-body #descripcion').value = ""
             editarVentana2.querySelector('.modal-body #genero').value = ""
-            editarVentana2.querySelector('.modal-body #img_imagen').value = ""
-            editarVentana2.querySelector('.modal-body #imagen').value = ""
+            editarVentana2.querySelector('.modal-body #img_imagen').src = ""
         })
-
+    
         editarVentana2.addEventListener('shown.bs.modal', event => {
             let button = event.relatedTarget
             let id = button.getAttribute('data-bs-id')
-
+    
             let inputId = editarVentana2.querySelector('.modal-body #id')
             let inputNombre = editarVentana2.querySelector('.modal-body #nombre')
             let inputDescripcion = editarVentana2.querySelector('.modal-body #descripcion')
             let inputGenero = editarVentana2.querySelector('.modal-body #genero')
             let imagen = editarVentana2.querySelector('.modal-body #img_imagen')
-
+    
             let url = "obtenerVideojuego2.php"
             let formData = new FormData()
             formData.append('id', id)
-
+    
             fetch(url, {
                 method: "POST",
                 body: formData
             }).then(response => response.json())
                 .then(data => {
-
                     inputId.value = data.id
                     inputNombre.value = data.nombre
                     inputDescripcion.value = data.descripcion
                     inputGenero.value = data.id_genero
-                    imagen.src = '<?= $dir ?>' + data.id + '.jpg'
-
+                    // Cargar imagen actualizada sin caché
+                    imagen.src = '<?= $dir ?>' + data.id + '.jpg?' + new Date().getTime()
                 }).catch(err => console.log(err))
         })
-
+    
         eliminarVentana2.addEventListener('shown.bs.modal', event => {
             let button = event.relatedTarget
             let id = button.getAttribute('data-bs-id')
             eliminarVentana2.querySelector('.modal-footer #id').value = id
         })
-
     </script>
 
 

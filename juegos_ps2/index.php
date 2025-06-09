@@ -1,19 +1,33 @@
 <?php
 
 session_start();
-if (!isset($_SESSION['usuario'])) {
+if (!isset($_SESSION['usuario_id'])) {
     header("Location: entrada.php");
     exit;
 }
 
 require '../bd.php';
 
-$sqlVideojuegos = "SELECT v.id, v.nombre, v.descripcion, g.nombre AS genero FROM videojuegos_ps2 AS v
-INNER JOIN genero AS g ON v.id_genero=g.id";
-$videojuegos = $conn->query($sqlVideojuegos);
+$id_usuario_actual = $_SESSION['usuario_id'];
 
+$sqlVideojuegos = "SELECT v.id, v.nombre, v.descripcion, g.nombre AS genero 
+                   FROM videojuegos_ps2 AS v
+                   INNER JOIN genero AS g ON v.id_genero=g.id
+                   WHERE v.id_usuario = ?";
+
+$videojuegos = null;
+if ($stmt = $conn->prepare($sqlVideojuegos)) {
+    $stmt->bind_param("i", $id_usuario_actual);
+    $stmt->execute();
+    $videojuegos = $stmt->get_result();
+    $stmt->close();
+} else {
+    $_SESSION['color'] = "danger";
+    $_SESSION['msg'] = "Error al preparar la consulta de videojuegos: " . $conn->error;
+}
+
+// Directorio para las imágenes
 $dir = "imagenes/";
-
 ?>
 
 <!doctype html>
@@ -122,10 +136,12 @@ $dir = "imagenes/";
         })
         
         editarVentana.addEventListener('hide.bs.modal', event => {
+            editarVentana.querySelector('.modal-body #id').value = ""
             editarVentana.querySelector('.modal-body #nombre').value = ""
             editarVentana.querySelector('.modal-body #descripcion').value = ""
             editarVentana.querySelector('.modal-body #genero').value = ""
             editarVentana.querySelector('.modal-body #img_imagen').src = ""
+            editarVentana.querySelector('.modal-body #imagen').value = ""
         })
         
         editarVentana.addEventListener('shown.bs.modal', event => {
@@ -145,16 +161,30 @@ $dir = "imagenes/";
             fetch(url, {
                 method: "POST",
                 body: formData
-            }).then(response => response.json())
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
                 .then(data => {
-                    inputId.value = data.id
-                    inputNombre.value = data.nombre
-                    inputDescripcion.value = data.descripcion
-                    inputGenero.value = data.id_genero
+                if (data.status === 'success' && data.data) {
+                    inputId.value = data.data.id;
+                    inputNombre.value = data.data.nombre;
+                    inputDescripcion.value = data.data.descripcion;
+                    inputGenero.value = data.data.id_genero;
                     // Cargar imagen actualizada sin caché
-                    imagen.src = '<?= $dir ?>' + data.id + '.jpg?' + new Date().getTime()
-                }).catch(err => console.log(err))
-        })
+                    imagen.src = '<?= $dir ?>' + data.data.id + '.jpg?' + new Date().getTime();
+                } else {
+                    alert('Error al obtener datos del videojuego: ' + (data.message || 'Datos no disponibles.'));
+                    editarVentana.querySelector('.btn-close').click(); 
+                }
+            }).catch(err => {
+                console.error('Fetch error:', err);
+                alert('Error al conectar con el servidor para obtener los datos del videojuego. Revisa la consola para más detalles.');
+                editarVentana.querySelector('.btn-close').click();
+            });
+        });
         
         eliminarVentana.addEventListener('shown.bs.modal', event => {
             let button = event.relatedTarget
